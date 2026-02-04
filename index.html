@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn Loop | Adaptive AI</title>
+    <style>
+        :root {
+            --bg-dark: #050b14;
+            --bg-panel: #0f172a;
+            --primary: #00f0ff; /* Cyber Cyan */
+            --secondary: #7000ff; /* Neon Purple */
+            --success: #00ff9d;
+            --warning: #ffbf00;
+            --text-main: #e2e8f0;
+            --text-muted: #64748b;
+            --border: rgba(0, 240, 255, 0.2);
+            --glass: rgba(15, 23, 42, 0.9);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+       
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- BACKGROUND & UTILS --- */
+        .grid-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-image: linear-gradient(var(--border) 1px, transparent 1px),
+                              linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center center;
+            opacity: 0.15;
+            z-index: -1;
+            transform: perspective(500px) rotateX(45deg);
+            transform-origin: top center;
+            pointer-events: none;
+        }
+
+        .hidden { display: none !important; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; opacity: 0; }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        .btn {
+            padding: 12px 24px; border: 1px solid var(--primary);
+            background: rgba(0, 240, 255, 0.05); color: var(--primary);
+            border-radius: 4px; cursor: pointer; font-weight: bold;
+            text-transform: uppercase; letter-spacing: 1px; transition: 0.3s;
+            font-size: 0.9rem;
+        }
+        .btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
+        .btn-secondary { border-color: var(--secondary); color: var(--secondary); background: rgba(112, 0, 255, 0.05); }
+        .btn-secondary:hover { background: var(--secondary); color: #fff; box-shadow: 0 0 15px var(--secondary); }
+
+        /* --- PANELS --- */
+        .panel {
+            background: var(--glass); border: 1px solid var(--border);
+            padding: 2.5rem; width: 100%; max-width: 500px;
+            border-radius: 12px; box-shadow: 0 0 40px rgba(0,0,0,0.6);
+            backdrop-filter: blur(12px); position: relative; margin: auto;
+        }
+        .panel::before {
+            content: ''; position: absolute; top: -1px; left: -1px; right: -1px; bottom: -1px;
+            background: linear-gradient(45deg, var(--primary), transparent, var(--secondary));
+            z-index: -1; border-radius: 13px; opacity: 0.4;
+        }
+
+        .wide-panel {
+            background: var(--glass); border: 1px solid var(--border);
+            padding: 2.5rem; width: 90%; max-width: 800px;
+            border-radius: 12px; box-shadow: 0 0 40px rgba(0,0,0,0.6);
+            backdrop-filter: blur(12px); position: relative; margin: auto;
+        }
+        .wide-panel::before {
+            content: ''; position: absolute; top: -1px; left: -1px; right: -1px; bottom: -1px;
+            background: linear-gradient(45deg, var(--primary), transparent, var(--secondary));
+            z-index: -1; border-radius: 13px; opacity: 0.4;
+        }
+
+        /* --- FORM ELEMENTS --- */
+        .input-box { margin-bottom: 1.5rem; }
+        .input-box label { display: block; color: var(--primary); margin-bottom: 0.5rem; font-size: 0.75rem; letter-spacing: 1.5px; }
+        input, select {
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.4);
+            border: 1px solid #334155; color: white; outline: none; border-radius: 4px;
+        }
+        input:focus { border-color: var(--primary); }
+
+        /* --- INTERESTS & LANGUAGE SELECTION --- */
+        .selection-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0;
+        }
+        
+        .interest-checkbox, .lang-radio {
+            display: none; /* Hide default checkbox/radio */
+        }
+        
+        .selection-card {
+            background: rgba(255,255,255,0.03); border: 1px solid #334155;
+            padding: 15px; border-radius: 8px; cursor: pointer; transition: 0.3s;
+            text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        .selection-card i { font-size: 1.5rem; color: var(--text-muted); margin-bottom: 5px; }
+        .selection-card:hover { border-color: var(--primary); background: rgba(0, 240, 255, 0.05); }
+       
+        /* Checked State */
+        .interest-checkbox:checked + .selection-card,
+        .lang-radio:checked + .selection-card {
+            border-color: var(--success); background: rgba(0, 255, 157, 0.05);
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.1);
+        }
+        .interest-checkbox:checked + .selection-card i,
+        .lang-radio:checked + .selection-card i { color: var(--success); }
+        .interest-checkbox:checked + .selection-card .status,
+        .lang-radio:checked + .selection-card .status { color: var(--success); }
+       
+        .status { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- SKILL ASSESSMENT --- */
+        .skill-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0;
+        }
+        .skill-checkbox {
+            display: none; /* Hide default checkbox */
+        }
+        .skill-card {
+            background: rgba(255,255,255,0.03); border: 1px solid #334155;
+            padding: 15px; border-radius: 8px; cursor: pointer; transition: 0.3s;
+            text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        .skill-card i { font-size: 1.5rem; color: var(--text-muted); margin-bottom: 5px; }
+        .skill-card:hover { border-color: var(--primary); background: rgba(0, 240, 255, 0.05); }
+       
+        /* Checked State */
+        .skill-checkbox:checked + .skill-card {
+            border-color: var(--success); background: rgba(0, 255, 157, 0.05);
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.1);
+        }
+        .skill-checkbox:checked + .skill-card i { color: var(--success); }
+        .skill-checkbox:checked + .skill-card .status { color: var(--success); }
+       
+        .status { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- ROADMAP --- */
+        .roadmap-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #334155; padding-bottom: 1rem; }
+       
+        .timeline { border-left: 2px solid #334155; padding-left: 2rem; margin-left: 1rem; position: relative; }
+        .week-card {
+            background: var(--bg-panel); border: 1px solid #334155; border-radius: 8px;
+            padding: 1.5rem; margin-bottom: 2.5rem; position: relative;
+            transition: transform 0.3s ease;
+        }
+        .week-card:hover { transform: translateX(5px); border-color: var(--primary); }
+       
+        /* Timeline Dot */
+        .week-card::before {
+            content: ''; position: absolute; left: -2.6rem; top: 1.5rem;
+            width: 1.2rem; height: 1.2rem; background: var(--bg-dark);
+            border: 2px solid var(--text-muted); border-radius: 50%; transition: 0.3s;
+        }
+        .week-card.active::before { border-color: var(--success); box-shadow: 0 0 10px var(--success); background: var(--success); }
+        .week-card.completed { opacity: 0.6; border-color: var(--success); }
+        .week-card.completed::before { background: var(--success); border-color: var(--success); }
+
+        .badge {
+            font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; margin-left: 10px; text-transform: uppercase; font-weight: bold;
+        }
+        .badge-learning { background: rgba(255, 191, 0, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+        .badge-project { background: rgba(0, 255, 157, 0.2); color: var(--success); border: 1px solid var(--success); }
+
+        .project-box {
+            background: rgba(0,0,0,0.3); padding: 1rem; margin-top: 1rem; border-radius: 6px; border-left: 3px solid var(--primary);
+        }
+        .resources-box {
+            margin-top: 1rem; font-size: 0.9rem; color: var(--text-muted);
+        }
+        .resources-box a { color: var(--primary); text-decoration: none; border-bottom: 1px dashed var(--primary); }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 100; display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal {
+            background: var(--bg-panel); width: 90%; max-width: 500px; padding: 2rem;
+            border: 1px solid var(--primary); border-radius: 12px; box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+        }
+        textarea { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #334155; color: white; padding: 10px; margin: 10px 0; border-radius: 4px; min-height: 100px; resize: vertical; }
+
+        /* --- ANIMATION FOR PROCESSING --- */
+        .scanner { width: 100%; height: 2px; background: #1e293b; margin: 1.5rem 0; position: relative; overflow: hidden; }
+        .scan-bar { width: 100%; height: 100%; background: var(--primary); position: absolute; left: -100%; animation: scan 1.5s infinite ease-in-out; }
+        @keyframes scan { 0% { left: -100%; } 100% { left: 100%; } }
+
+        /* --- CAREER ROLES --- */
+        .career-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 30px 0;
+        }
+        .career-card {
+            background: rgba(255,255,255,0.03); border: 1px solid #334155;
+            padding: 20px; border-radius: 8px; cursor: pointer; transition: 0.3s;
+            text-align: center;
+        }
+        .career-card:hover { 
+            border-color: var(--primary); 
+            background: rgba(0, 240, 255, 0.05); 
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 240, 255, 0.1);
+        }
+        .career-card i { 
+            font-size: 2rem; 
+            color: var(--primary); 
+            margin-bottom: 10px; 
+        }
+        .career-card h4 { 
+            color: var(--text-main); 
+            margin-bottom: 8px; 
+        }
+        .career-card p { 
+            color: var(--text-muted); 
+            font-size: 0.9rem; 
+        }
+
+        @media (max-width: 768px) {
+            .career-grid {
+                grid-template-columns: 1fr;
+            }
+            .selection-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="grid-bg"></div>
+
+    <!-- VIEW 1: LOGIN -->
+    <section id="login-view" class="fade-in" style="display:flex; height:100vh; align-items:center; justify-content:center;">
+        <div class="panel">
+            <h1 style="text-align:center; margin-bottom:5px;">Learn Loop</h1>
+            <p style="text-align:center; color:var(--text-muted); margin-bottom:2rem;">Growth.On.Repeat</p>
+            <form onsubmit="event.preventDefault(); app.gotoInterests();">
+                <div class="input-box">
+                    <label>USER ID</label>
+                    <input type="text" id="login-id" value="Candidate_01" required>
+                </div>
+                <div class="input-box">
+                    <label>PASSWORD</label>
+                    <input type="password" value="password" required>
+                </div>
+                <button class="btn" style="width:100%">Login</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- VIEW 2: INTERESTS & LANGUAGE SELECTION -->
+    <section id="interests-view" class="hidden" style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem;">
+        <div class="wide-panel fade-in">
+            <h2 style="color:var(--primary); margin-bottom:0.5rem; text-align:center;">Customize Your Learning Path</h2>
+            <p style="color:var(--text-muted); margin-bottom:2rem; text-align:center; font-size:0.9rem;">
+                Select your interests and preferred programming language to personalize your career roadmap
+            </p>
+
+            <div class="input-box">
+                <label>SELECT YOUR INTERESTS (Choose at least 2)</label>
+                <div class="selection-grid">
+                    <label>
+                        <input type="checkbox" class="interest-checkbox" value="data">
+                        <div class="selection-card">
+                            <i>📊</i>
+                            <div>Data Analysis</div>
+                            <div class="status">Not Selected</div>
+                        </div>
+                    </label>
+                    <label>
+                        <input type="checkbox" class="interest-checkbox" value="ml">
+                        <div class="selection-card">
+                            <i>🤖</i>
+                            <div>Machine Learning</div>
+                            <div class="status">Not Selected</div>
+                        </div>
+                    </label>
+                    <label>
+                        <input type="checkbox" class="interest-checkbox" value="web">
+                        <div class="selection-card">
+                            <i>🌐</i>
+                            <div>Web Development</div>
+                            <div class="status">Not Selected</div>
+                        </div>
+                    </label>
+                    <label>
+                        <input type="checkbox" class="interest-checkbox" value="mobile">
+                        <div class="selection-card">
+                            <i>📱</i>
+                            <div>Mobile Development</div>
+                            <div class="status">Not Selected</div>
+                        </div>
+                    </label>
+                    <label>
+                        <input type="checkbox" class="interest-checkbox" value="cloud">
+                        <div class="selection-card">
+                            <i>☁️</i>
+                            <div>Cloud Computing</div>
+                            <div class="status">Not Selected</div>
+                        </div>
+                    </label>
+                    <label>
+                        <input type="checkbox" class="interest-checkbox" value="security">
+                        <div class="selection-card">
+                            <i>🔒</i>
+                            <div>Cybersecurity</div>
+                            <div class="status">Not Selected</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="input-box">
+                <label>PREFERRED PROGRAMMING LANGUAGE</label>
+                <div class="selection-grid">
+                    <label>
+                        <input type="radio" name="language" class="lang-radio" value="python" checked>
+                        <div class="selection-card">
+                            <i>🐍</i>
+                            <div>Python</div>
+                            <div class="status">Selected</div>
+                        </div>
+                    </label>
+                    <label>
+                        <input type="radio" name="language" class="lang-radio" value="javascript">
+                        <div class="selection-card">
+                            <i>📜</i>
+                            <div>JavaScript</div>
+                            <div class="status">Not Selected</div>
+                        </div>
+                    </label>
+                    <label>
+                        <input type="radio" name="language" class="lang-radio" value="java">
+                        <div class="selection-card">
+                            <i>☕</i>
+                            <div>Java</div>
+                            <div class="status">Not Selected</div>
+                        </div>
+                    </label>
+                    <label>
+                        <input type="radio" name="language" class="lang-radio" value="csharp">
+                        <div class="selection-card">
+                            <i>🔷</i>
+                            <div>C#</div>
+                            <div class="status">Not Selected</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn" style="width:100%" onclick="app.gotoCareerRoles()">Continue to Career Paths</button>
+        </div>
+    </section>
+
+    <!-- VIEW 3: CAREER ROLES SELECTION -->
+    <section id="career-roles-view" class="hidden" style="min-height:100vh; padding:2rem;">
+        <div class="container">
+            <div class="wide-panel fade-in" style="text-align:center;">
+                <h2 style="color:var(--primary); margin-bottom:1rem;">Recommended Career Paths</h2>
+                <p style="color:var(--text-muted); margin-bottom:2rem;">
+                    Based on your interests and language preference, we recommend these career paths
+                </p>
+                
+                <div class="career-grid" id="career-grid">
+                    <!-- Career cards will be dynamically inserted here -->
+                </div>
+                
+                <button class="btn" style="width:100%; margin-top:20px;" onclick="app.startAnalysis()">Continue with Selected Path</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIEW 4: PROCESSING (AI ANALYSIS) -->
+    <section id="processing-view" class="hidden" style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+        <h2 style="letter-spacing: 2px; color:var(--primary)">ANALYZING PROFILE...</h2>
+        <div class="scanner"><div class="scan-bar"></div></div>
+        <div id="log-console" style="font-family:'Courier New'; color:var(--success);">Initializing neural link...</div>
+    </section>
+
+    <!-- VIEW 5: PREDICTION RESULT -->
+    <section id="result-view" class="hidden" style="padding-top:4rem;">
+        <div class="container">
+            <div class="panel fade-in" style="max-width:700px; text-align:center;">
+                <div style="color:var(--text-muted); letter-spacing:2px; margin-bottom:1rem;">OPTIMAL PATH IDENTIFIED</div>
+                <h1 style="font-size:2.5rem; color:var(--primary); text-shadow:0 0 20px rgba(0,240,255,0.3); margin-bottom:1rem;">
+                    <span id="result-career">Data Scientist</span> <span style="font-size:1rem; color:white; vertical-align:middle; background:#334155; padding:2px 6px; border-radius:4px;" id="result-category">Research & Prediction</span>
+                </h1>
+                <p style="color:var(--text-muted); margin-bottom:2rem;" id="result-description">Based on your interest in Statistics, Python, and Research.</p>
+               
+                <button class="btn" onclick="app.gotoSkillAssessment()">Configure My Roadmap >></button>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIEW 6: SKILL ASSESSMENT -->
+    <section id="skill-view" class="hidden" style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem;">
+        <div class="panel fade-in" style="max-width:600px;">
+            <h2 style="color:var(--primary); margin-bottom:0.5rem;">Skill Calibration</h2>
+            <p style="color:var(--text-muted); margin-bottom:1.5rem; font-size:0.9rem;">
+                Select the skills you already possess. This will adapt your 4-week plan between <b>Learning Modules</b> and <b>Advanced Projects</b>.
+            </p>
+
+            <div class="skill-grid">
+                <label>
+                    <input type="checkbox" class="skill-checkbox" value="sql" id="check-sql">
+                    <div class="skill-card">
+                        <i>💾</i>
+                        <div>SQL & Excel</div>
+                        <div class="status">Unknown</div>
+                    </div>
+                </label>
+                <label>
+                    <input type="checkbox" class="skill-checkbox" value="python" id="check-python">
+                    <div class="skill-card">
+                        <i>🐍</i>
+                        <div>Python</div>
+                        <div class="status">Unknown</div>
+                    </div>
+                </label>
+                <label>
+                    <input type="checkbox" class="skill-checkbox" value="stats" id="check-stats">
+                    <div class="skill-card">
+                        <i>📊</i>
+                        <div>Statistics</div>
+                        <div class="status">Unknown</div>
+                    </div>
+                </label>
+                <label>
+                    <input type="checkbox" class="skill-checkbox" value="viz" id="check-viz">
+                    <div class="skill-card">
+                        <i>📈</i>
+                        <div>Data Visualization</div>
+                        <div class="status">Unknown</div>
+                    </div>
+                </label>
+            </div>
+
+            <button class="btn" style="width:100%" onclick="app.generateRoadmap()">Generate Adaptive Path</button>
+        </div>
+    </section>
+
+    <!-- VIEW 7: ROADMAP -->
+    <section id="roadmap-view" class="hidden" style="padding: 2rem 5%; min-height: 100vh;">
+        <div class="container">
+            <div class="roadmap-header">
+                <div>
+                    <h2 style="color:var(--primary)" id="roadmap-title">Data Scientist Path</h2>
+                    <span style="font-size:0.8rem; color:var(--text-muted)">ADAPTIVE LEARNING MODE: ACTIVE</span>
+                </div>
+                <button class="btn btn-secondary" onclick="location.reload()">Reset</button>
+            </div>
+
+            <div class="timeline" id="roadmap-content">
+                <!-- Weeks injected via JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- SUBMISSION MODAL -->
+    <div id="submission-modal" class="modal-overlay hidden">
+        <div class="panel fade-in" style="max-width:500px; margin:0;">
+            <h3 style="color:var(--primary); margin-bottom:1rem;">Submit Project</h3>
+            <p id="modal-task-name" style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;">Project Name</p>
+           
+            <label style="font-size:0.8rem; color:var(--primary);">Project Link (GitHub/Drive)</label>
+            <input type="text" placeholder="https://..." id="sub-link">
+           
+            <label style="font-size:0.8rem; color:var(--primary);">Comments / Code Snippet</label>
+            <textarea id="sub-notes" placeholder="Paste your key logic here..."></textarea>
+           
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1rem;">
+                <button class="btn btn-secondary" onclick="document.getElementById('submission-modal').classList.add('hidden')">Cancel</button>
+                <button class="btn" onclick="app.submitProject()">Submit for AI Review</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /*
+           BACKEND SIMULATION & DATA STORE
+           In a real app, this would be a Python/Node API.
+        */
+
+        const CONTENT_DB = {
+            'sql': {
+                name: 'SQL & Excel',
+                learning: {
+                    resource: 'SQLZoo & Excel Pivot Tables Guide',
+                    task: 'Import "Sales_Data.csv" into Excel. Create a Pivot Table showing Total Sales per Region. Write a SQL query to replicate this result.'
+                },
+                challenge: {
+                    task: 'Advanced Data Cleaning: You have duplicate records and NULL values in the "Transactions" table. Write a SQL script to identify duplicates, remove them, and impute missing numerical values with the average.'
+                }
+            },
+            'python': {
+                name: 'Python for Data',
+                learning: {
+                    resource: 'Automate the Boring Stuff / Pandas Documentation',
+                    task: 'Write a Python script that reads a CSV file, filters rows where "Sales > 1000", and saves the result to a new file.'
+                },
+                challenge: {
+                    task: 'Build an ETL Pipeline: Write a Python script that fetches data from a public API (e.g., JSONPlaceholder), transforms the nested JSON into a flat structure, and loads it into a SQLite database.'
+                }
+            },
+            'stats': {
+                name: 'Statistics',
+                learning: {
+                    resource: 'Khan Academy: Statistics & Probability',
+                    task: 'Given a dataset of student heights, calculate Mean, Median, Mode, and Standard Deviation manually (using Python or Excel).'
+                },
+                challenge: {
+                    task: 'A/B Testing Analysis: Analyze provided dataset "Experiment_Results.csv". Determine if the new feature (Group B) has a statistically significant lift in conversion rate compared to the control (Group A) using a T-test.'
+                }
+            },
+            'viz': {
+                name: 'Data Visualization',
+                learning: {
+                    resource: 'Matplotlib / Seaborn Tutorials',
+                    task: 'Create a Bar Chart and a Scatter Plot using Python (Matplotlib) showing the relationship between "Ad Spend" and "Revenue".'
+                },
+                challenge: {
+                    task: 'Interactive Dashboard: Create a PowerBI or Tableau dashboard connected to the "Sales_Data" source. It must include filters for Year and Product Category, and a KPI card for YOY Growth.'
+                }
+            }
+        };
+
+        // Career paths based on interests and language
+        const CAREER_PATHS = {
+            'data': {
+                'python': [
+                    { title: 'Data Scientist', category: 'Research & Prediction', icon: '🔬', description: 'Based on your interest in Data Analysis and Python.' },
+                    { title: 'Data Analyst', category: 'Business Intelligence', icon: '📊', description: 'Based on your interest in Data Analysis and Python.' },
+                    { title: 'ML Engineer', category: 'AI & Automation', icon: '🤖', description: 'Based on your interest in Data Analysis and Machine Learning.' }
+                ],
+                'javascript': [
+                    { title: 'Data Analyst', category: 'Business Intelligence', icon: '📊', description: 'Based on your interest in Data Analysis and JavaScript.' },
+                    { title: 'BI Developer', category: 'Data Visualization', icon: '📈', description: 'Based on your interest in Data Analysis and Web Development.' }
+                ],
+                'java': [
+                    { title: 'Data Engineer', category: 'Big Data', icon: '⚙️', description: 'Based on your interest in Data Analysis and Java.' },
+                    { title: 'Data Analyst', category: 'Business Intelligence', icon: '📊', description: 'Based on your interest in Data Analysis and Java.' }
+                ],
+                'csharp': [
+                    { title: 'Data Engineer', category: 'Big Data', icon: '⚙️', description: 'Based on your interest in Data Analysis and C#.' },
+                    { title: 'BI Developer', category: 'Data Visualization', icon: '📈', description: 'Based on your interest in Data Analysis and C#.' }
+                ]
+            },
+            'ml': {
+                'python': [
+                    { title: 'ML Engineer', category: 'AI & Automation', icon: '🤖', description: 'Based on your interest in Machine Learning and Python.' },
+                    { title: 'Data Scientist', category: 'Research & Prediction', icon: '🔬', description: 'Based on your interest in Machine Learning and Python.' },
+                    { title: 'AI Engineer', category: 'Advanced AI', icon: '🧠', description: 'Based on your interest in Machine Learning and Python.' }
+                ],
+                'javascript': [
+                    { title: 'ML Engineer', category: 'AI & Automation', icon: '🤖', description: 'Based on your interest in Machine Learning and JavaScript.' },
+                    { title: 'AI Engineer', category: 'Advanced AI', icon: '🧠', description: 'Based on your interest in Machine Learning and JavaScript.' }
+                ],
+                'java': [
+                    { title: 'ML Engineer', category: 'AI & Automation', icon: '🤖', description: 'Based on your interest in Machine Learning and Java.' },
+                    { title: 'Data Scientist', category: 'Research & Prediction', icon: '🔬', description: 'Based on your interest in Machine Learning and Java.' }
+                ],
+                'csharp': [
+                    { title: 'ML Engineer', category: 'AI & Automation', icon: '🤖', description: 'Based on your interest in Machine Learning and C#.' },
+                    { title: 'AI Engineer', category: 'Advanced AI', icon: '🧠', description: 'Based on your interest in Machine Learning and C#.' }
+                ]
+            },
+            'web': {
+                'python': [
+                    { title: 'Full Stack Developer', category: 'Web Development', icon: '🌐', description: 'Based on your interest in Web Development and Python.' },
+                    { title: 'Backend Developer', category: 'Server-side', icon: '⚙️', description: 'Based on your interest in Web Development and Python.' }
+                ],
+                'javascript': [
+                    { title: 'Full Stack Developer', category: 'Web Development', icon: '🌐', description: 'Based on your interest in Web Development and JavaScript.' },
+                    { title: 'Frontend Developer', category: 'Client-side', icon: '🎨', description: 'Based on your interest in Web Development and JavaScript.' },
+                    { title: 'Backend Developer', category: 'Server-side', icon: '⚙️', description: 'Based on your interest in Web Development and JavaScript.' }
+                ],
+                'java': [
+                    { title: 'Full Stack Developer', category: 'Web Development', icon: '🌐', description: 'Based on your interest in Web Development and Java.' },
+                    { title: 'Backend Developer', category: 'Server-side', icon: '⚙️', description: 'Based on your interest in Web Development and Java.' }
+                ],
+                'csharp': [
+                    { title: 'Full Stack Developer', category: 'Web Development', icon: '🌐', description: 'Based on your interest in Web Development and C#.' },
+                    { title: 'Backend Developer', category: 'Server-side', icon: '⚙️', description: 'Based on your interest in Web Development and C#.' }
+                ]
+            },
+            'mobile': {
+                'python': [
+                    { title: 'Mobile Developer', category: 'Cross-platform', icon: '📱', description: 'Based on your interest in Mobile Development and Python.' }
+                ],
+                'javascript': [
+                    { title: 'Mobile Developer', category: 'Cross-platform', icon: '📱', description: 'Based on your interest in Mobile Development and JavaScript.' }
+                ],
+                'java': [
+                    { title: 'Android Developer', category: 'Mobile OS', icon: '🤖', description: 'Based on your interest in Mobile Development and Java.' }
+                ],
+                'csharp': [
+                    { title: 'Mobile Developer', category: 'Cross-platform', icon: '📱', description: 'Based on your interest in Mobile Development and C#.' }
+                ]
+            },
+            'cloud': {
+                'python': [
+                    { title: 'Cloud Engineer', category: 'Infrastructure', icon: '☁️', description: 'Based on your interest in Cloud Computing and Python.' },
+                    { title: 'DevOps Engineer', category: 'CI/CD', icon: '🔄', description: 'Based on your interest in Cloud Computing and Python.' }
+                ],
+                'javascript': [
+                    { title: 'Cloud Engineer', category: 'Infrastructure', icon: '☁️', description: 'Based on your interest in Cloud Computing and JavaScript.' },
+                    { title: 'DevOps Engineer', category: 'CI/CD', icon: '🔄', description: 'Based on your interest in Cloud Computing and JavaScript.' }
+                ],
+                'java': [
+                    { title: 'Cloud Engineer', category: 'Infrastructure', icon: '☁️', description: 'Based on your interest in Cloud Computing and Java.' },
+                    { title: 'DevOps Engineer', category: 'CI/CD', icon: '🔄', description: 'Based on your interest in Cloud Computing and Java.' }
+                ],
+                'csharp': [
+                    { title: 'Cloud Engineer', category: 'Infrastructure', icon: '☁️', description: 'Based on your interest in Cloud Computing and C#.' },
+                    { title: 'DevOps Engineer', category: 'CI/CD', icon: '🔄', description: 'Based on your interest in Cloud Computing and C#.' }
+                ]
+            },
+            'security': {
+                'python': [
+                    { title: 'Security Engineer', category: 'Cybersecurity', icon: '🔒', description: 'Based on your interest in Cybersecurity and Python.' },
+                    { title: 'Penetration Tester', category: 'Ethical Hacking', icon: '🔍', description: 'Based on your interest in Cybersecurity and Python.' }
+                ],
+                'javascript': [
+                    { title: 'Security Engineer', category: 'Cybersecurity', icon: '🔒', description: 'Based on your interest in Cybersecurity and JavaScript.' }
+                ],
+                'java': [
+                    { title: 'Security Engineer', category: 'Cybersecurity', icon: '🔒', description: 'Based on your interest in Cybersecurity and Java.' }
+                ],
+                'csharp': [
+                    { title: 'Security Engineer', category: 'Cybersecurity', icon: '🔒', description: 'Based on your interest in Cybersecurity and C#.' }
+                ]
+            }
+        };
+
+        const app = {
+            userInterests: [],
+            userLanguage: 'python',
+            selectedCareer: null,
+            userSkills: {},
+            currentWeekIndex: 0,
+            submissions: {},
+           
+            // --- NAVIGATION ---
+            gotoInterests: () => {
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('interests-view').classList.remove('hidden');
+                document.getElementById('interests-view').classList.add('fade-in');
+                
+                // Add event listeners to interest cards
+                document.querySelectorAll('.interest-checkbox').forEach(chk => {
+                    chk.addEventListener('change', (e) => {
+                        const statusDiv = e.target.nextElementSibling.querySelector('.status');
+                        statusDiv.innerText = e.target.checked ? "Selected" : "Not Selected";
+                        statusDiv.style.color = e.target.checked ? "var(--success)" : "var(--text-muted)";
+                    });
+                });
+                
+                // Add event listeners to language cards
+                document.querySelectorAll('.lang-radio').forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        // Reset all language status texts
+                        document.querySelectorAll('.lang-radio').forEach(r => {
+                            const statusDiv = r.nextElementSibling.querySelector('.status');
+                            statusDiv.innerText = "Not Selected";
+                            statusDiv.style.color = "var(--text-muted)";
+                        });
+                        
+                        // Update selected language status
+                        const statusDiv = e.target.nextElementSibling.querySelector('.status');
+                        statusDiv.innerText = "Selected";
+                        statusDiv.style.color = "var(--success)";
+                    });
+                });
+            },
+
+            gotoCareerRoles: () => {
+                // Capture user selections
+                app.userInterests = [];
+                document.querySelectorAll('.interest-checkbox:checked').forEach(chk => {
+                    app.userInterests.push(chk.value);
+                });
+                
+                const selectedLang = document.querySelector('.lang-radio:checked');
+                app.userLanguage = selectedLang ? selectedLang.value : 'python';
+                
+                // Validate at least 2 interests selected
+                if (app.userInterests.length < 2) {
+                    alert('Please select at least 2 interests to continue.');
+                    return;
+                }
+                
+                // Generate career recommendations
+                const careerGrid = document.getElementById('career-grid');
+                careerGrid.innerHTML = '';
+                
+                // Get unique career paths based on interests
+                const careerSet = new Set();
+                app.userInterests.forEach(interest => {
+                    if (CAREER_PATHS[interest] && CAREER_PATHS[interest][app.userLanguage]) {
+                        CAREER_PATHS[interest][app.userLanguage].forEach(career => {
+                            careerSet.add(JSON.stringify(career));
+                        });
+                    }
+                });
+                
+                // Convert back to array and display
+                const careers = Array.from(careerSet).map(careerStr => JSON.parse(careerStr));
+                
+                careers.forEach((career, index) => {
+                    const careerCard = document.createElement('div');
+                    careerCard.className = 'career-card';
+                    careerCard.innerHTML = `
+                        <i>${career.icon}</i>
+                        <h4>${career.title}</h4>
+                        <p>${career.category}</p>
+                    `;
+                    careerCard.addEventListener('click', () => {
+                        // Remove previous selection
+                        document.querySelectorAll('.career-card').forEach(card => {
+                            card.style.borderColor = '#334155';
+                        });
+                        
+                        // Highlight selected career
+                        careerCard.style.borderColor = 'var(--primary)';
+                        app.selectedCareer = career;
+                    });
+                    careerGrid.appendChild(careerCard);
+                });
+                
+                // Switch to career roles view
+                document.getElementById('interests-view').classList.add('hidden');
+                document.getElementById('career-roles-view').classList.remove('hidden');
+                document.getElementById('career-roles-view').classList.add('fade-in');
+            },
+
+            startAnalysis: () => {
+                if (!app.selectedCareer) {
+                    alert('Please select a career path to continue.');
+                    return;
+                }
+                
+                document.getElementById('career-roles-view').classList.add('hidden');
+                document.getElementById('processing-view').classList.remove('hidden');
+               
+                const logs = document.getElementById('log-console');
+                const steps = [
+                    "Parsing User Profile...", 
+                    `Interests: ${app.userInterests.join(', ')}...`,
+                    `Language: ${app.userLanguage} Detected...`,
+                    `Career Path: ${app.selectedCareer.title} Selected...`,
+                    "Generating Personalized Roadmap..."
+                ];
+                
+                let i = 0;
+                const interval = setInterval(() => {
+                    logs.innerText = steps[i];
+                    i++;
+                    if(i >= steps.length) {
+                        clearInterval(interval);
+                        document.getElementById('processing-view').classList.add('hidden');
+                        document.getElementById('result-view').classList.remove('hidden');
+                        document.getElementById('result-view').classList.add('fade-in');
+                        
+                        // Update result view with selected career
+                        document.getElementById('result-career').innerText = app.selectedCareer.title;
+                        document.getElementById('result-category').innerText = app.selectedCareer.category;
+                        document.getElementById('result-description').innerText = app.selectedCareer.description;
+                    }
+                }, 800);
+            },
+
+            gotoSkillAssessment: () => {
+                document.getElementById('result-view').classList.add('hidden');
+                document.getElementById('skill-view').classList.remove('hidden');
+                document.getElementById('skill-view').classList.add('fade-in');
+               
+                // Add event listeners to cards to update text
+                document.querySelectorAll('.skill-checkbox').forEach(chk => {
+                    chk.addEventListener('change', (e) => {
+                        const statusDiv = e.target.nextElementSibling.querySelector('.status');
+                        statusDiv.innerText = e.target.checked ? "Known" : "Unknown";
+                        statusDiv.style.color = e.target.checked ? "var(--success)" : "var(--text-muted)";
+                    });
+                });
+            },
+
+            // --- CORE LOGIC: ROADMAP GENERATION ---
+            generateRoadmap: () => {
+                // 1. Capture Skills
+                document.querySelectorAll('.skill-checkbox').forEach(chk => {
+                    app.userSkills[chk.value] = chk.checked;
+                });
+
+                // 2. Switch View
+                document.getElementById('skill-view').classList.add('hidden');
+                document.getElementById('roadmap-view').classList.remove('hidden');
+                document.getElementById('roadmap-view').classList.add('fade-in');
+
+                // 3. Update roadmap title with selected career
+                document.getElementById('roadmap-title').innerText = `${app.selectedCareer.title} Path`;
+
+                // 4. Render Weeks (Order: SQL -> Python -> Stats -> Viz)
+                const order = ['sql', 'python', 'stats', 'viz'];
+                const container = document.getElementById('roadmap-content');
+                container.innerHTML = '';
+
+                order.forEach((skillKey, index) => {
+                    const skillData = CONTENT_DB[skillKey];
+                    const isKnown = app.userSkills[skillKey];
+                    const weekNum = index + 1;
+
+                    // Determine content based on skill level
+                    let mode = isKnown ? 'Challenge' : 'Learning';
+                    let badgeClass = isKnown ? 'badge-project' : 'badge-learning';
+                    let contentHtml = '';
+
+                    if(isKnown) {
+                        contentHtml = `
+                            <div class="project-box">
+                                <strong>⚡ Validation Project:</strong><br>
+                                ${skillData.challenge.task}
+                            </div>
+                        `;
+                    } else {
+                        contentHtml = `
+                            <div class="resources-box">
+                                📚 <strong>Study Material:</strong> <a href="#">${skillData.learning.resource}</a>
+                            </div>
+                            <div class="project-box">
+                                <strong>🛠️ Capstone Task:</strong><br>
+                                ${skillData.learning.task}
+                            </div>
+                        `;
+                    }
+
+                    const html = `
+                        <div class="week-card fade-in" style="animation-delay: ${index * 0.2}s" id="week-${skillKey}">
+                            <div style="display:flex; justify-content:space-between; align-items:start;">
+                                <h3 style="color:var(--text-main)">Week ${weekNum}: ${skillData.name}</h3>
+                                <span class="badge ${badgeClass}">${mode} Track</span>
+                            </div>
+                            <div style="margin:1rem 0; color:var(--text-muted); font-size:0.9rem;">
+                                ${isKnown
+                                    ? 'Since you know this skill, you have been assigned an advanced challenge to validate your expertise.'
+                                    : 'You will learn the fundamentals this week and apply them to a practical project.'}
+                            </div>
+                            ${contentHtml}
+                           
+                            <div style="margin-top:1.5rem; text-align:right;">
+                                <button class="btn" id="btn-${skillKey}" onclick="app.openSubmitModal('${skillKey}', '${skillData.name}')">
+                                    ${app.submissions[skillKey] ? '✓ Submitted' : 'Submit Project'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += html;
+                   
+                    // Mark as completed if already submitted
+                    if(app.submissions[skillKey]) {
+                        document.getElementById(`week-${skillKey}`).classList.add('completed');
+                    }
+                });
+            },
+
+            // --- SUBMISSION HANDLING ---
+            openSubmitModal: (skillKey, skillName) => {
+                if(app.submissions[skillKey]) return; // Already done
+
+                const modal = document.getElementById('submission-modal');
+                document.getElementById('modal-task-name').innerText = `Submission for: ${skillName}`;
+                modal.dataset.skill = skillKey; // Store skill key in modal
+                modal.classList.remove('hidden');
+            },
+
+            submitProject: () => {
+                const modal = document.getElementById('submission-modal');
+                const skillKey = modal.dataset.skill;
+                const btn = document.getElementById(`btn-${skillKey}`);
+                const card = document.getElementById(`week-${skillKey}`);
+               
+                // Simulate Network Request
+                btn.innerText = "Analyzing...";
+                btn.disabled = true;
+
+                setTimeout(() => {
+                    // Success State
+                    app.submissions[skillKey] = true;
+                   
+                    // Update UI
+                    modal.classList.add('hidden');
+                    btn.innerText = "✓ Validated by AI";
+                    btn.style.borderColor = "var(--success)";
+                    btn.style.color = "var(--success)";
+                    card.classList.add('completed');
+                    card.classList.add('active'); // Flash the dot
+
+                    // Unlock next week visually (optional logic could go here)
+                    alert(`[AI SYSTEM]: Project validation successful. Your proficiency in ${CONTENT_DB[skillKey].name} has been recorded.`);
+
+                }, 1500);
+            }
+        };
+
+        // --- INIT ---
+        // Check if user refreshed mid-session
+        window.addEventListener('load', () => {
+            // In a real app, check localStorage/DB here
+            console.log("System Ready");
+        });
+
+    </script>
+</body>
+</html>
