@@ -1,2 +1,2 @@
-# learnloop
+# LearnLoop
 hackathon project
